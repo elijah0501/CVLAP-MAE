@@ -70,7 +70,3 @@ Each config YAML contains two key fields:
 ---
 
 All rights reserved by the authors and Massey University, New Zealand. 
-
-For any questions or issues, please contact the corresponding author.
-
-Corresponding author: ruili.wang@massey.ac.nz (Ruili Wang)
