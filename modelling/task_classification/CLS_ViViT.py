@@ -58,3 +58,4 @@ class CLS_ViViT(nn.Module):
         x = F.relu(self.head_fc1(x))
         x = self.head_fc2(x)
         return x
+

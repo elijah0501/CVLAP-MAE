@@ -31,6 +31,8 @@ def kinetics_dataloader(cfg):
         transforms.ToTensor(),
     ])
 
+    subset_ratio = cfg.data.setting.get('subset_ratio', 1.0)
+
     common_kwargs = dict(
         label_mapping=cfg.data.dir.label_mapping,
         frames_per_clip=cfg.data.setting.num_frames,
@@ -39,16 +41,21 @@ def kinetics_dataloader(cfg):
         hop_length=cfg.data.setting.hop_length,
         transform=transform,
         tokenizer=cfg.data.setting.tokenizer,
+        subset_ratio=subset_ratio,
     )
 
     train_dataset = KineticsDataset(video_dir=cfg.data.dir.train_dir, anno_dir=cfg.data.dir.train_anno, **common_kwargs)
     valid_dataset = KineticsDataset(video_dir=cfg.data.dir.val_dir, anno_dir=cfg.data.dir.val_anno, **common_kwargs)
     test_dataset = KineticsDataset(video_dir=cfg.data.dir.test_dir, anno_dir=cfg.data.dir.test_anno, **common_kwargs)
 
+    num_workers = cfg.data.setting.num_workers
     loader_kwargs = dict(
         batch_size=cfg.data.setting.batch_size,
-        num_workers=cfg.data.setting.num_workers,
+        num_workers=num_workers,
         collate_fn=collate_fn,
+        pin_memory=True,
+        persistent_workers=num_workers > 0,
+        prefetch_factor=2 if num_workers > 0 else None,
     )
     train_loader = DataLoader(train_dataset, shuffle=True, drop_last=True, **loader_kwargs)
     valid_loader = DataLoader(valid_dataset, shuffle=False, drop_last=False, **loader_kwargs)

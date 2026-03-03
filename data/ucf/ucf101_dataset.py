@@ -1,6 +1,5 @@
-"""UCF-101 Dataset with video frames, audio spectrograms, and HuggingFace text encoding."""
-
 import os
+import random
 import re
 import warnings
 
@@ -26,13 +25,16 @@ warnings.filterwarnings("ignore", category=UserWarning)
 class UCF101Dataset(Dataset):
     """UCF-101 video dataset with audio spectrogram and HuggingFace tokenizer.
 
+    Videos without extractable audio are automatically skipped and replaced
+    by another randomly sampled video that does have valid audio.
+
     Returns:
         frames: (C, T, H, W) float32 tensor
         label: int (0-indexed)
         video_prompt: str
         encoded_video_prompt: (max_length,) token ids
         encoded_video_prompt_mask: (max_length,) attention mask
-        audio_spectrogram: (1024, 128) float32 tensor (-1 if no audio)
+        audio_spectrogram: (1024, 128) float32 tensor
         audio_prompt: str
         encoded_audio_prompt: (max_length,) token ids
         encoded_audio_prompt_mask: (max_length,) attention mask
@@ -59,29 +61,44 @@ class UCF101Dataset(Dataset):
     def __len__(self):
         return len(self.video_files)
 
+    _MAX_AUDIO_RETRIES = 10
+
     def __getitem__(self, idx):
-        video_path = os.path.join(self.root_dir, self.video_files[idx])
+        for _attempt in range(self._MAX_AUDIO_RETRIES):
+            video_path = os.path.join(self.root_dir, self.video_files[idx])
 
-        if self.labels is None:
-            raise ValueError(f"Video file {video_path} has no labels")
+            if self.labels is None:
+                raise ValueError(f"Video file {video_path} has no labels")
 
-        label = self.labels[idx] - 1  # 0-indexed
-        if label < 0 or label >= len(self.class_labels):
-            raise ValueError(f"Label {label} out of bounds for index {idx}")
+            label = self.labels[idx] - 1  # 0-indexed
+            if label < 0 or label >= len(self.class_labels):
+                raise ValueError(f"Label {label} out of bounds for index {idx}")
 
-        text_label = self._process_label(self.class_labels[label + 1])
-        video_prompt = f"This is a video of {text_label}."
-        encoded_vp, encoded_vp_mask = self._tokenize(video_prompt)
+            text_label = self._process_label(self.class_labels[label + 1])
+            video_prompt = f"This is a video of {text_label}."
+            encoded_vp, encoded_vp_mask = self._tokenize(video_prompt)
 
-        frames = self._load_video_frames(video_path)
-        audio_spec, audio_prompt, encoded_ap, encoded_ap_mask = self._load_audio_data(video_path, text_label)
+            frames = self._load_video_frames(video_path)
 
-        if self.transform:
-            frames = [self.transform(frame) for frame in frames]
-        frames = torch.stack(frames).permute(1, 0, 2, 3)  # (C, T, H, W)
+            # Audio — skip this video if audio is unavailable
+            audio_result = self._load_audio_data(video_path, text_label)
+            if audio_result is not None:
+                audio_spec, audio_prompt, encoded_ap, encoded_ap_mask = audio_result
 
-        return (frames, label, video_prompt, encoded_vp, encoded_vp_mask,
-                audio_spec, audio_prompt, encoded_ap, encoded_ap_mask)
+                if self.transform:
+                    frames = [self.transform(frame) for frame in frames]
+                frames = torch.stack(frames).permute(1, 0, 2, 3)  # (C, T, H, W)
+
+                return (frames, label, video_prompt, encoded_vp, encoded_vp_mask,
+                        audio_spec, audio_prompt, encoded_ap, encoded_ap_mask)
+
+            # Pick another random sample and retry
+            idx = random.randint(0, len(self) - 1)
+
+        raise RuntimeError(
+            f"Failed to find a sample with valid audio after "
+            f"{self._MAX_AUDIO_RETRIES} retries (last video: {video_path})."
+        )
 
     @staticmethod
     def _load_class_labels(class_label_file):
@@ -137,17 +154,19 @@ class UCF101Dataset(Dataset):
         return frames[:self.frames_per_clip]
 
     def _load_audio_data(self, video_path, text_label):
-        """Extract audio spectrogram, resized to (1024, 128)."""
-        no_audio_prompt = "No Audio."
-        no_audio_ids, no_audio_mask = self._tokenize(no_audio_prompt)
-        no_audio = (torch.full((1024, 128), -1.0), no_audio_prompt, no_audio_ids, no_audio_mask)
+        """Extract audio spectrogram, resized to (1024, 128).
 
+        Returns a (spectrogram, prompt, ids, mask) tuple on success,
+        or ``None`` when the video has no audio track or audio extraction
+        fails.  The caller is expected to discard the sample and retry.
+        """
         try:
             video_clip = VideoFileClip(video_path)
             try:
                 audio = video_clip.audio
                 if audio is None:
-                    return no_audio
+                    print(f"No audio track in {video_path}, skipping.")
+                    return None
 
                 audio_array = audio.to_soundarray(fps=self.sr).mean(axis=1)
                 s = librosa.stft(audio_array, n_fft=self.n_fft, hop_length=self.hop_length)
@@ -166,5 +185,5 @@ class UCF101Dataset(Dataset):
                 video_clip.close()
 
         except (UnicodeDecodeError, OSError) as e:
-            print(f"Audio load error for {video_path}: {e}")
-            return no_audio
+            print(f"Audio load error for {video_path}: {e}, skipping.")
+            return None

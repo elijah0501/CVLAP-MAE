@@ -184,3 +184,4 @@ class ASTModel(nn.Module):
             return x[:, 0]
         else:
             return x[:, 1:].mean(1)
+

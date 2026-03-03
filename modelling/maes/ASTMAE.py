@@ -37,14 +37,17 @@ class ASTMAE(nn.Module):
                  pretrained_model_path: str,
                  input_fdim: int,
                  input_tdim: int,
-                 mask_ratio: float,
                  norm_pix_loss: bool,
                  model_size: str = 'base384',
                  arch: str = 'base',
+                 mask_ratio: float = 0.75,
                  **kwargs):
         super().__init__()
         assert timm.__version__ == '0.4.5', \
             'Please use timm == 0.4.5, the code might not be compatible with newer versions.'
+
+        # AudioMAE mask ratio is fixed at 75 %.
+        mask_ratio = 0.75
 
         # Override parameters if arch is 'large'
         if arch == 'large':

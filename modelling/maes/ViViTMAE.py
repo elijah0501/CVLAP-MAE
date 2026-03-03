@@ -38,11 +38,14 @@ class ViViTMAE(nn.Module):
                  mae_pretrain: bool,
                  vit_pretrain: bool,
                  clip_pretrain: bool,
-                 mask_ratio: float,
+                 mask_ratio: float = 0.75,
                  arch: str = 'base',
                  norm_pix_loss: bool = False,
                  **kwargs):  # Accept extra config keys without error
         super().__init__()
+
+        # VideoMAE mask ratio is configurable (default 75 %).
+        # Typical values: 0.50, 0.75, 0.90
 
         # Override parameters if arch is 'large'
         if arch == 'large':

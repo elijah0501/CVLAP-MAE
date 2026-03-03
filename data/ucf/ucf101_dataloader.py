@@ -73,4 +73,3 @@ def ucf101_dataloader(cfg):
     test_loader = DataLoader(test_dataset, shuffle=False, **loader_kwargs)
 
     return train_loader, valid_loader, test_loader
-
