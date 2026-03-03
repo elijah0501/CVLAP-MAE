@@ -1,6 +1,6 @@
 # Contrastive Video-Language-Audio Pre-training with Masked AutoEncoders
 
-> This repository contains the codebase for the paper Contrastive Video-Language-Audio Pre-training with Masked AutoEncoders for Video Action Recognition.
+![Static Badge](https://img.shields.io/badge/under_review-Pattern%20Recognition-orange)
 
 This Paper is submitted to Pattern Recognition (PR) Journal, and is currently under review. To facilitate the review process, key components of the code have been uploaded in the interim.
 
