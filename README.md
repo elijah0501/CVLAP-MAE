@@ -1,7 +1,7 @@
 # Contrastive Video-Language-Audio Pre-training with Masked AutoEncoders.
 
 ![Static Badge](https://img.shields.io/badge/under_review-Pattern%20Recognition-orange)
-![Visitors](https://visitor-badge.laobi.icu/badge?page_id=elijah0501.elijah0501.github.io&right_color=lightgreen&left_text=Recognised%20Visitors&left_color=lightblue)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=git@github.com:elijah0501/CVLAP-MAE.git&right_color=lightgreen&left_text=Recognised%20Visitors&left_color=lightblue)
 
 
 This Paper is submitted to Pattern Recognition (PR) Journal, and is currently under review. To facilitate the review process, key components of the code have been uploaded in the interim.
