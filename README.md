@@ -1,4 +1,4 @@
-# Contrastive Video-Language-Audio Pre-training with Masked AutoEncoders
+# Contrastive Video-Language-Audio Pre-training with Masked AutoEncoders.
 
 ![Static Badge](https://img.shields.io/badge/under_review-Pattern%20Recognition-orange)
 
